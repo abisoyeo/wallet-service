@@ -1,18 +1,20 @@
-// src/auth/auth.service.ts
 import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { User } from 'src/users/user.schema';
+import { ApiKey } from 'src/keys/api-key.schema';
 
 @Injectable()
 export class AuthService {
-  // In-memory DB for demo purposes
-  private apiKeys: any[] = [];
-  private users: any[] = [];
+  constructor(
+    private jwtService: JwtService,
+    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(ApiKey.name) private apiKeyModel: Model<ApiKey>,
+  ) {}
 
-  constructor(private jwtService: JwtService) {}
-
-  // --- User Logic ---
   async login(user: any) {
     const payload = { email: user.email, sub: user.id };
     return {
@@ -21,51 +23,51 @@ export class AuthService {
   }
 
   async signup(email, password) {
-    // Simple mock signup
-    const newUser = { id: Date.now(), email, password };
-    this.users.push(newUser);
-    return newUser;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const createdUser = new this.userModel({ email, password: hashedPassword });
+    return createdUser.save();
   }
 
-  // --- API Key Logic ---
   async createApiKey(serviceName: string) {
     const rawKey = crypto.randomBytes(32).toString('hex');
+    const keyPrefix = rawKey.substring(0, 7);
     const hashedKey = await bcrypt.hash(rawKey, 10);
 
-    // Set expiration for 30 days
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
-    const keyRecord = {
-      id: crypto.randomUUID(),
-      keyPrefix: rawKey.substring(0, 7),
+    const newKey = new this.apiKeyModel({
+      keyPrefix,
       keyHash: hashedKey,
       serviceName,
-      isActive: true,
       expiresAt,
-    };
+    });
 
-    this.apiKeys.push(keyRecord);
+    await newKey.save();
 
-    // RETURN THE RAW KEY ONLY ONCE
-    return { apiKey: rawKey, ...keyRecord };
+    return { apiKey: rawKey, serviceName, expiresAt };
   }
 
   async validateApiKey(rawKey: string) {
-    // In a real DB, you might search by prefix to optimize, or iterate
-    // Since we can't search by hash, usually we store a "prefix" or "id" in the header too,
-    // Or we just iterate (slow for large DBs) or use a secure indexable token.
-    // For this demo, we will iterate our mock DB.
+    const prefix = rawKey.substring(0, 7);
 
-    for (const storedKey of this.apiKeys) {
-      const isMatch = await bcrypt.compare(rawKey, storedKey.keyHash);
+    const apiKeyDoc = await this.apiKeyModel.findOne({ keyPrefix: prefix });
 
-      if (isMatch) {
-        if (!storedKey.isActive) return null; // Revoked
-        if (new Date() > storedKey.expiresAt) return null; // Expired
-        return storedKey;
-      }
+    if (!apiKeyDoc) return null;
+
+    if (!apiKeyDoc.isActive) return null; // Revoked
+    if (new Date() > apiKeyDoc.expiresAt) return null; // Expired
+
+    const isMatch = await bcrypt.compare(rawKey, apiKeyDoc.keyHash);
+
+    if (isMatch) {
+      await this.apiKeyModel.updateOne(
+        { _id: apiKeyDoc._id },
+        { $set: { lastUsed: new Date() } },
+      );
+      return apiKeyDoc;
     }
+
     return null;
   }
 }
