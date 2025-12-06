@@ -7,18 +7,22 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { ApiKeyStrategy } from './strategies/api-key.strategy';
 import { User, UserSchema } from 'src/users/user.schema';
 import { ApiKey, ApiKeySchema } from 'src/keys/api-key.schema';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost:27017/poly-auth-db'),
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: ApiKey.name, schema: ApiKeySchema },
     ]),
     PassportModule,
-    JwtModule.register({
-      secret: 'YOUR_SECRET_KEY',
-      signOptions: { expiresIn: '1h' },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '1h' },
+      }),
+      inject: [ConfigService],
     }),
   ],
   providers: [AuthService, JwtStrategy, ApiKeyStrategy],
