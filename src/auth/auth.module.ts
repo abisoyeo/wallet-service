@@ -6,14 +6,16 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { ApiKeyStrategy } from './strategies/api-key.strategy';
 import { User, UserSchema } from 'src/users/user.schema';
-import { ApiKey, ApiKeySchema } from 'src/keys/api-key.schema';
+import { ApiKey, ApiKeySchema } from 'src/api-key/api-key.schema';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { RevokedToken, RevokedTokenSchema } from './revoked-token.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: ApiKey.name, schema: ApiKeySchema },
+      { name: RevokedToken.name, schema: RevokedTokenSchema },
     ]),
     PassportModule,
     JwtModule.registerAsync({

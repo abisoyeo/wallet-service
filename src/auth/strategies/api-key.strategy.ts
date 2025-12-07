@@ -18,6 +18,10 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
     if (!record) {
       throw new UnauthorizedException('Invalid or expired API key');
     }
-    return { type: 'service', ...record };
+    return {
+      type: 'service',
+      serviceId: record._id.toString(),
+      serviceName: record.serviceName,
+    };
   }
 }
