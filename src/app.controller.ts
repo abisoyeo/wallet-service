@@ -7,6 +7,10 @@ import {
   Request,
   UnauthorizedException,
   Req,
+  HttpStatus,
+  HttpCode,
+  Delete,
+  Param,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth/auth.service';
@@ -26,6 +30,7 @@ export class AppController {
   }
 
   @Post('auth/login')
+  @HttpCode(HttpStatus.OK)
   async login(@Body() body: LoginDto) {
     return this.authService.login(body.email, body.password);
   }
@@ -34,6 +39,24 @@ export class AppController {
   @Post('keys/create')
   async createKey(@Body() body: CreateApiKeyDto) {
     return this.authService.createApiKey(body.serviceName);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('keys/revoke/:id')
+  async revokeKey(@Param('id') id: string) {
+    return this.authService.revokeKey(id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('keys')
+  async getKeys() {
+    return this.authService.getKeys();
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('keys/:id')
+  async deleteKey(@Param('id') id: string) {
+    return this.authService.deleteKey(id);
   }
 
   @UseGuards(AuthGuard(['jwt', 'api-key']))
@@ -55,7 +78,18 @@ export class AppController {
     };
   }
 
+  @UseGuards(AuthGuard('jwt'))
+  @Get('protected/user-only')
+  getUserData(@CurrentIdentity() identity: Identity) {
+    return {
+      message: `Hello from ${identity.email}`,
+      userId: identity.userId,
+      type: identity.type,
+    };
+  }
+
   @UseGuards(AuthGuard(['jwt', 'api-key']))
+  @HttpCode(HttpStatus.OK)
   @Post('auth/logout')
   async logout(@CurrentIdentity() identity: Identity, @Req() req: any) {
     const authHeader = req.headers['authorization'];

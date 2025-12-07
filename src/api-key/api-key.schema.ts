@@ -6,7 +6,7 @@ export class ApiKey extends Document {
   @Prop({ required: true, index: true })
   keyPrefix: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true })
   serviceName: string;
 
   @Prop({ required: true })

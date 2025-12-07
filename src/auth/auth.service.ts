@@ -58,7 +58,49 @@ export class AuthService {
     }
   }
 
+  async getKeys() {
+    const keys = await this.apiKeyModel.find().select('-keyHash');
+
+    if (!keys || keys.length === 0) {
+      return {
+        message: 'No API keys found',
+        data: [],
+      };
+    }
+
+    return {
+      message: `${keys.length} API key(s) retrieved successfully`,
+      data: keys,
+    };
+  }
+
+  async deleteKey(id: string) {
+    const result = await this.apiKeyModel.deleteOne({ keyPrefix: id });
+
+    if (result.deletedCount === 0) {
+      return { message: `API key with prefix ${id} not found` };
+    }
+
+    return {
+      message: `API key with prefix ${id} successfully deleted`,
+    };
+  }
+
+  async revokeKey(id: string) {
+    await this.apiKeyModel.updateOne(
+      { keyPrefix: id },
+      { $set: { isActive: false } },
+    );
+
+    return {
+      message: `API key with prefix ${id} successfully revoked`,
+    };
+  }
+
   async createApiKey(serviceName: string) {
+    const existing = await this.apiKeyModel.findOne({ serviceName });
+    if (existing) throw new ConflictException('Service name already in use');
+
     const rawKey = crypto.randomBytes(32).toString('hex');
     const keyPrefix = rawKey.substring(0, 7);
     const hashedKey = await bcrypt.hash(rawKey, 10);
@@ -104,7 +146,6 @@ export class AuthService {
   private async revokeJwt(token: string) {
     const decoded = this.jwtService.decode(token) as any;
 
-    // save jti to blacklist
     await this.revokedTokenModel.create({
       jti: decoded.jti,
       expiresAt: new Date(decoded.exp * 1000),
