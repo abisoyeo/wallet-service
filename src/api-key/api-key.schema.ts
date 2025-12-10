@@ -38,3 +38,5 @@ export class ApiKey extends Document {
 }
 
 export const ApiKeySchema = SchemaFactory.createForClass(ApiKey);
+
+ApiKeySchema.index({ owner: 1, name: 1 }, { unique: true });

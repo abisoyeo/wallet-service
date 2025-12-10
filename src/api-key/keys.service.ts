@@ -22,20 +22,24 @@ import {
 export class ApiKeyService {
   constructor(@InjectModel(ApiKey.name) private apiKeyModel: Model<ApiKey>) {}
 
-  async revokeKey(keyPrefix: string) {
-    await this.apiKeyModel.updateOne(
-      { keyPrefix: keyPrefix },
+  async revokeKey(id: string) {
+    const result = await this.apiKeyModel.updateOne(
+      { _id: id },
       { $set: { isActive: false } },
     );
 
+    if (result.matchedCount === 0) {
+      throw new NotFoundException(`API key with id ${id} not found`);
+    }
+
     return {
-      message: `API key with prefix ${keyPrefix} successfully revoked`,
+      message: `API key with id ${id} successfully revoked`,
     };
   }
 
   async getKeys(userId: string) {
     const keys = await this.apiKeyModel
-      .find({ owner: userId, isRevoked: false })
+      .find({ owner: userId })
       .select('-keyHash')
       .sort({ createdAt: -1 });
 
@@ -56,14 +60,14 @@ export class ApiKeyService {
   }
 
   async deleteKey(id: string) {
-    const result = await this.apiKeyModel.deleteOne({ keyPrefix: id });
+    const result = await this.apiKeyModel.deleteOne({ _id: id });
 
     if (result.deletedCount === 0) {
-      return { message: `API key with prefix ${id} not found` };
+      return { message: `API key with id ${id} not found` };
     }
 
     return {
-      message: `API key with prefix ${id} successfully deleted`,
+      message: `API key with id ${id} successfully deleted`,
     };
   }
 
@@ -88,37 +92,43 @@ export class ApiKeyService {
       throw new ConflictException('Service name already in use');
     }
 
-    // Generate prefixed key
     const environment = dto.environment || KeyEnvironment.LIVE;
     const rawKey = generatePrefixedKey({ environment });
 
-    // Extract prefix for lookup (first 15 chars includes sk_live_xxxxx)
     const keyPrefix = extractKeyPrefix(rawKey, 15);
 
-    // Hash the full key
     const hashedKey = await bcrypt.hash(rawKey, 10);
     const expiresAt = this.calculateExpiryDate(dto.expiry);
 
-    const newKey = new this.apiKeyModel({
-      owner: userId,
-      name: dto.name,
-      permissions: dto.permissions,
-      keyPrefix,
-      keyHash: hashedKey,
-      environment,
-      isActive: true,
-      expiresAt,
-    });
+    let newKey: ApiKey;
+    try {
+      newKey = new this.apiKeyModel({
+        owner: userId,
+        name: dto.name,
+        permissions: dto.permissions,
+        keyPrefix,
+        keyHash: hashedKey,
+        environment,
+        isActive: true,
+        expiresAt,
+      });
 
-    await newKey.save();
-
+      await newKey.save();
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new ConflictException(
+          'An API key with that name already exists.',
+        );
+      }
+      throw error;
+    }
     return {
       message: 'API key created successfully',
       permissions: newKey.permissions,
       name: newKey.name,
       key_prefix: keyPrefix,
       masked_key: maskApiKey(rawKey),
-      api_key: rawKey, // Full key shown only once!
+      api_key: rawKey,
       environment,
       expires_at: expiresAt,
       _id: newKey._id,
@@ -153,7 +163,6 @@ export class ApiKeyService {
       );
     }
 
-    // Generate new prefixed key
     const environment = oldKey.environment ?? KeyEnvironment.LIVE;
     const rawKey = generatePrefixedKey({ environment });
     const keyPrefix = extractKeyPrefix(rawKey, 15);
@@ -173,7 +182,6 @@ export class ApiKeyService {
 
     await newKey.save();
 
-    // Optionally deactivate the old key
     oldKey.isActive = false;
     await oldKey.save();
 

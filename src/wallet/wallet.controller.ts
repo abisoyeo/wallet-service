@@ -17,6 +17,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiSecurity,
+  ApiBody,
 } from '@nestjs/swagger';
 import { WalletService } from './wallet.service';
 import { PermissionsGuard } from 'src/common/guards/permission.guard';
@@ -61,6 +62,7 @@ export class WalletController {
   @Post('deposit')
   @ApiBearerAuth('access-token')
   @ApiSecurity('api-key')
+  @ApiBody({ type: DepositDto })
   @ApiOperation({ summary: 'Initiate a deposit into the wallet' })
   @ApiResponse({ status: 201, description: 'Deposit initiated successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -112,15 +114,28 @@ export class WalletController {
 
   @UseGuards(AuthGuard(['jwt', 'api-key']), PermissionsGuard)
   @SetMetadata('permissions', ['read'])
+  @Get('balance')
+  @ApiBearerAuth('access-token')
+  @ApiSecurity('api-key')
+  @ApiOperation({ summary: 'Get the wallet balance' })
+  @ApiResponse({ status: 200, description: 'Wallet details' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getBalance(@CurrentIdentity() identity: Identity) {
+    const userId = this.getWalletOwner(identity);
+    return this.walletService.getBalance(userId);
+  }
+
+  @UseGuards(AuthGuard(['jwt', 'api-key']), PermissionsGuard)
+  @SetMetadata('permissions', ['read'])
   @Get()
   @ApiBearerAuth('access-token')
   @ApiSecurity('api-key')
   @ApiOperation({ summary: 'Get the wallet details & balance' })
   @ApiResponse({ status: 200, description: 'Wallet details' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getBalance(@CurrentIdentity() identity: Identity) {
+  async getWalletDetails(@CurrentIdentity() identity: Identity) {
     const userId = this.getWalletOwner(identity);
-    return this.walletService.getBalance(userId);
+    return this.walletService.getWalletByUserId(userId);
   }
 
   @UseGuards(AuthGuard(['jwt', 'api-key']), PermissionsGuard)

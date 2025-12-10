@@ -211,6 +211,11 @@ export class WalletService {
     return { walletNumber: wallet.walletNumber, balance: wallet.balance };
   }
 
+  async getWalletByUserId(userId: string) {
+    const wallet = await this.ensureWallet(userId);
+    return { walletNumber: wallet.walletNumber, balance: wallet.balance };
+  }
+
   async getHistory(userId: string) {
     return this.txModel.find({ userId }).sort({ createdAt: -1 }).limit(20);
   }

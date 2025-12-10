@@ -48,8 +48,8 @@ export class ApiKeyController {
   @ApiOperation({ summary: 'Revoke an API key' })
   @ApiResponse({ status: 200, description: 'API key revoked successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async revokeKey(@Param('id') keyPrefix: string) {
-    return this.keyService.revokeKey(keyPrefix);
+  async revokeKey(@Param('id') id: string) {
+    return this.keyService.revokeKey(id);
   }
 
   @Get()
