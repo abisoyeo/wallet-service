@@ -29,6 +29,14 @@ export class AuthService {
     return this.generateToken(user);
   }
 
+  async loginWithProvider(user: any) {
+    const safeUser: AuthUser = {
+      _id: user._id.toString(),
+      email: user.email,
+    };
+    return this.generateToken(safeUser);
+  }
+
   async signup(email, password) {
     const existing = await this.userModel.findOne({ email });
     if (existing) throw new ConflictException('Email already in use');
@@ -44,6 +52,30 @@ export class AuthService {
     };
 
     return this.generateToken(safeUser);
+  }
+
+  async validateGoogleUser(googleUser: any) {
+    const { email, googleId, firstName, lastName, picture } = googleUser;
+
+    const user = await this.userModel.findOne({ email });
+
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = googleId;
+        await user.save();
+      }
+      return user;
+    }
+
+    const newUser = new this.userModel({
+      email,
+      googleId,
+      firstName,
+      lastName,
+      picture,
+    });
+
+    return newUser.save();
   }
 
   async logout(identity: Identity, token: string) {
@@ -166,6 +198,12 @@ export class AuthService {
   async validateUser(email: string, pass: string): Promise<AuthUser> {
     const user = await this.userModel.findOne({ email });
     if (!user) throw new UnauthorizedException('Invalid credentials');
+
+    if (!user.password) {
+      throw new UnauthorizedException(
+        'Account created via Google. Please sign in with Google.',
+      );
+    }
 
     const isMatch = await bcrypt.compare(pass, user.password);
     if (!isMatch) throw new UnauthorizedException('Invalid credentials');
