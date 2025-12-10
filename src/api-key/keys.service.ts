@@ -10,7 +10,13 @@ import { ApiKey } from './api-key.schema';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
 import { RolloverApiKeyDto } from './dto/rollover-api-key.dto';
 import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
+import {
+  generatePrefixedKey,
+  extractKeyPrefix,
+  maskApiKey,
+  isValidKeyFormat,
+  KeyEnvironment,
+} from './utils/key-prefix.helper';
 
 @Injectable()
 export class ApiKeyService {
@@ -29,7 +35,7 @@ export class ApiKeyService {
 
   async getKeys(userId: string) {
     const keys = await this.apiKeyModel
-      .find({ userId, isRevoked: false })
+      .find({ owner: userId, isRevoked: false })
       .select('-keyHash')
       .sort({ createdAt: -1 });
 
@@ -42,7 +48,10 @@ export class ApiKeyService {
 
     return {
       message: `${keys.length} API key(s) retrieved successfully`,
-      data: keys,
+      data: keys.map((key) => ({
+        ...key.toObject(),
+        maskedKey: key.keyPrefix ? maskApiKey(key.keyPrefix) : '***',
+      })),
     };
   }
 
@@ -70,11 +79,23 @@ export class ApiKeyService {
         'Limit reached: Maximum 5 active API keys allowed per user.',
       );
     }
-    const existing = await this.apiKeyModel.findOne({ name: dto.name });
-    if (existing) throw new ConflictException('Service name already in use');
 
-    const rawKey = crypto.randomBytes(32).toString('hex');
-    const keyPrefix = rawKey.substring(0, 7);
+    const existing = await this.apiKeyModel.findOne({
+      name: dto.name,
+      owner: userId,
+    });
+    if (existing) {
+      throw new ConflictException('Service name already in use');
+    }
+
+    // Generate prefixed key
+    const environment = dto.environment || KeyEnvironment.LIVE;
+    const rawKey = generatePrefixedKey({ environment });
+
+    // Extract prefix for lookup (first 15 chars includes sk_live_xxxxx)
+    const keyPrefix = extractKeyPrefix(rawKey, 15);
+
+    // Hash the full key
     const hashedKey = await bcrypt.hash(rawKey, 10);
     const expiresAt = this.calculateExpiryDate(dto.expiry);
 
@@ -84,6 +105,7 @@ export class ApiKeyService {
       permissions: dto.permissions,
       keyPrefix,
       keyHash: hashedKey,
+      environment,
       isActive: true,
       expiresAt,
     });
@@ -94,8 +116,10 @@ export class ApiKeyService {
       message: 'API key created successfully',
       permissions: newKey.permissions,
       name: newKey.name,
-      key_prefix: newKey.keyPrefix,
-      api_key: rawKey, // "sk_live_..." (Use a prefix helper if needed)
+      key_prefix: keyPrefix,
+      masked_key: maskApiKey(rawKey),
+      api_key: rawKey, // Full key shown only once!
+      environment,
       expires_at: expiresAt,
       _id: newKey._id,
     };
@@ -129,8 +153,10 @@ export class ApiKeyService {
       );
     }
 
-    const rawKey = crypto.randomBytes(32).toString('hex');
-    const keyPrefix = rawKey.substring(0, 7);
+    // Generate new prefixed key
+    const environment = oldKey.environment ?? KeyEnvironment.LIVE;
+    const rawKey = generatePrefixedKey({ environment });
+    const keyPrefix = extractKeyPrefix(rawKey, 15);
     const hashedKey = await bcrypt.hash(rawKey, 10);
     const expiresAt = this.calculateExpiryDate(dto.expiry);
 
@@ -140,31 +166,44 @@ export class ApiKeyService {
       permissions: oldKey.permissions,
       keyPrefix,
       keyHash: hashedKey,
+      environment,
       isActive: true,
       expiresAt,
     });
 
     await newKey.save();
 
+    // Optionally deactivate the old key
+    oldKey.isActive = false;
+    await oldKey.save();
+
     return {
       message: 'Key rolled over successfully',
       api_key: rawKey,
+      masked_key: maskApiKey(rawKey),
       permissions: newKey.permissions,
+      environment,
       expires_at: expiresAt,
       _id: newKey._id,
     };
   }
 
-  async validateApiKey(rawKey: string) {
-    const prefix = rawKey.substring(0, 7);
+  async validateApiKey(rawKey: string): Promise<ApiKey | null> {
+    // Validate format first
+    if (!isValidKeyFormat(rawKey)) {
+      return null;
+    }
+
+    // Extract prefix for lookup
+    const prefix = extractKeyPrefix(rawKey, 15);
 
     const apiKeyDoc = await this.apiKeyModel.findOne({ keyPrefix: prefix });
 
     if (!apiKeyDoc) return null;
-
     if (!apiKeyDoc.isActive) return null; // Revoked
     if (new Date() > apiKeyDoc.expiresAt) return null; // Expired
 
+    // Verify the full key hash
     const isMatch = await bcrypt.compare(rawKey, apiKeyDoc.keyHash);
 
     if (isMatch) {

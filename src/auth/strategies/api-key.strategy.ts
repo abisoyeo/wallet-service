@@ -22,6 +22,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
     return {
       type: 'service',
       serviceId: record._id.toString(),
+      owner: record.owner,
       keyPrefix: record.keyPrefix,
       isActive: record.isActive,
       expiresAt: record.expiresAt,

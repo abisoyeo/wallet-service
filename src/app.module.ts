@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ApiKeyModule } from './api-key/keys.module';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ApiKeyModule } from './api-key/keys.module';
     }),
     AuthModule,
     ApiKeyModule,
+    WalletModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { User } from 'src/users/user.schema';
+import { KeyEnvironment } from './utils/key-prefix.helper';
 
 @Schema()
 export class ApiKey extends Document {
@@ -15,6 +16,13 @@ export class ApiKey extends Document {
 
   @Prop({ type: [String], default: [] })
   permissions: string[]; // e.g., ['deposit', 'read']
+
+  @Prop({
+    type: String,
+    enum: Object.values(KeyEnvironment),
+    default: KeyEnvironment.LIVE,
+  })
+  environment: KeyEnvironment; // 'live' | 'test'
 
   @Prop({ required: true })
   keyHash: string;
