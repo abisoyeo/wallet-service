@@ -4,5 +4,5 @@ export interface Identity {
   email?: string;
 
   serviceId?: string;
-  serviceName?: string;
+  name?: string;
 }

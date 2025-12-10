@@ -1,3 +1,16 @@
+import { IsArray, IsEnum, IsNotEmpty, IsString } from 'class-validator';
+
 export class CreateApiKeyDto {
-  serviceName!: string;
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  permissions: string[];
+
+  @IsEnum(['1H', '1D', '1M', '1Y'], {
+    message: 'Expiry must be 1H, 1D, 1M, or 1Y',
+  })
+  expiry: string;
 }

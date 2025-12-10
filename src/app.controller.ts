@@ -11,7 +11,7 @@ export class AppController {
   @Get('protected/hybrid')
   getHybridData(@CurrentIdentity() identity: Identity) {
     if (identity.type === 'service') {
-      return `Hello Service: ${identity.serviceName}`;
+      return `Hello Service: ${identity.name}`;
     }
     return `Hello User: ${identity.email}`;
   }
@@ -20,7 +20,7 @@ export class AppController {
   @Get('protected/service-only')
   getServiceData(@CurrentIdentity() identity: Identity) {
     return {
-      message: `Hello from ${identity.serviceName}`,
+      message: `Hello from ${identity.name}`,
       serviceId: identity.serviceId,
       type: identity.type,
     };

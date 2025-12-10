@@ -10,6 +10,8 @@ import { ApiKey, ApiKeySchema } from 'src/api-key/api-key.schema';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RevokedToken, RevokedTokenSchema } from './revoked-token.schema';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { AuthController } from './auth.controller';
+import { ApiKeyModule } from 'src/api-key/keys.module';
 
 @Module({
   imports: [
@@ -27,8 +29,9 @@ import { GoogleStrategy } from './strategies/google.strategy';
       }),
       inject: [ConfigService],
     }),
+    ApiKeyModule,
   ],
-  // controllers: [AuthController],
+  controllers: [AuthController],
   providers: [AuthService, JwtStrategy, ApiKeyStrategy, GoogleStrategy],
   exports: [AuthService],
 })
