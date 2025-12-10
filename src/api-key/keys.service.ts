@@ -189,12 +189,10 @@ export class ApiKeyService {
   }
 
   async validateApiKey(rawKey: string): Promise<ApiKey | null> {
-    // Validate format first
     if (!isValidKeyFormat(rawKey)) {
       return null;
     }
 
-    // Extract prefix for lookup
     const prefix = extractKeyPrefix(rawKey, 15);
 
     const apiKeyDoc = await this.apiKeyModel.findOne({ keyPrefix: prefix });
@@ -203,7 +201,6 @@ export class ApiKeyService {
     if (!apiKeyDoc.isActive) return null; // Revoked
     if (new Date() > apiKeyDoc.expiresAt) return null; // Expired
 
-    // Verify the full key hash
     const isMatch = await bcrypt.compare(rawKey, apiKeyDoc.keyHash);
 
     if (isMatch) {

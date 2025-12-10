@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsIn,
+  ArrayMinSize,
 } from 'class-validator';
 import { KeyEnvironment } from '../utils/key-prefix.helper';
 import { ApiProperty } from '@nestjs/swagger';
@@ -25,6 +26,7 @@ export class CreateApiKeyDto {
   })
   @IsArray()
   @IsString({ each: true })
+  @ArrayMinSize(1, { message: 'At least one permission is required' })
   @IsIn(ALLOWED_PERMISSIONS, {
     each: true,
     message: `Each permission must be one of the following: ${ALLOWED_PERMISSIONS.join(
@@ -49,6 +51,8 @@ export class CreateApiKeyDto {
     required: false,
   })
   @IsOptional()
-  @IsEnum(KeyEnvironment)
+  @IsEnum(KeyEnvironment, {
+    message: 'Environment must be either live or test',
+  })
   environment?: KeyEnvironment;
 }

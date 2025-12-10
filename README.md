@@ -1,9 +1,11 @@
 # 💳 Secure Wallet Service API
 
 ## Overview
+
 This project is a robust NestJS backend application implementing a polymorphic authentication pattern, designed for managing user and service identities. It integrates secure API key management, Google OAuth for user authentication, and a comprehensive wallet system with Paystack payment gateway integration for deposits and transfers, all backed by MongoDB.
 
 ## Features
+
 - **Polymorphic Authentication**: Unified identity handling for both users (JWT) and services (API Keys).
 - **Secure API Key Management**: Generate, rollover, revoke, and manage API keys with granular permissions and expiry.
 - **Google OAuth Integration**: Seamless user authentication via Google accounts.
@@ -16,24 +18,25 @@ This project is a robust NestJS backend application implementing a polymorphic a
 
 ## Technologies Used
 
-| Technology | Description | Link |
-| :--------- | :---------- | :--- |
-| **Node.js** | JavaScript runtime environment | [nodejs.org](https://nodejs.org/) |
-| **NestJS** | Progressive Node.js framework for building efficient, reliable, and scalable server-side applications. | [nestjs.com](https://nestjs.com/) |
-| **TypeScript** | Superset of JavaScript that compiles to plain JavaScript. | [typescriptlang.org](https://www.typescriptlang.org/) |
-| **MongoDB** | NoSQL document database. | [mongodb.com](https://www.mongodb.com/) |
-| **Mongoose** | MongoDB object data modeling (ODM) for Node.js. | [mongoosejs.com](https://mongoosejs.com/) |
-| **Passport.js** | Authentication middleware for Node.js. | [passportjs.org](http://www.passportjs.org/) |
-| **bcrypt** | Library for hashing passwords. | [npmjs.com/package/bcrypt](https://www.npmjs.com/package/bcrypt) |
-| **Paystack** | Online payment gateway for Africa. | [paystack.com](https://paystack.com/) |
-| **JWT** | JSON Web Tokens for secure information transmission. | [jwt.io](https://jwt.io/) |
-| **Axios** | Promise-based HTTP client for the browser and Node.js. | [axios-http.com](https://axios-http.com/) |
+| Technology      | Description                                                                                            | Link                                                             |
+| :-------------- | :----------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------- |
+| **Node.js**     | JavaScript runtime environment                                                                         | [nodejs.org](https://nodejs.org/)                                |
+| **NestJS**      | Progressive Node.js framework for building efficient, reliable, and scalable server-side applications. | [nestjs.com](https://nestjs.com/)                                |
+| **TypeScript**  | Superset of JavaScript that compiles to plain JavaScript.                                              | [typescriptlang.org](https://www.typescriptlang.org/)            |
+| **MongoDB**     | NoSQL document database.                                                                               | [mongodb.com](https://www.mongodb.com/)                          |
+| **Mongoose**    | MongoDB object data modeling (ODM) for Node.js.                                                        | [mongoosejs.com](https://mongoosejs.com/)                        |
+| **Passport.js** | Authentication middleware for Node.js.                                                                 | [passportjs.org](http://www.passportjs.org/)                     |
+| **bcrypt**      | Library for hashing passwords.                                                                         | [npmjs.com/package/bcrypt](https://www.npmjs.com/package/bcrypt) |
+| **Paystack**    | Online payment gateway for Africa.                                                                     | [paystack.com](https://paystack.com/)                            |
+| **JWT**         | JSON Web Tokens for secure information transmission.                                                   | [jwt.io](https://jwt.io/)                                        |
+| **Axios**       | Promise-based HTTP client for the browser and Node.js.                                                 | [axios-http.com](https://axios-http.com/)                        |
 
 ## Getting Started
 
 To get this project up and running on your local machine, follow these steps.
 
 ### Installation
+
 1.  **Clone the repository**:
     ```bash
     git clone https://github.com/abisoyeo/wallet-service.git
@@ -51,6 +54,7 @@ To get this project up and running on your local machine, follow these steps.
     ```
 
 ### Environment Variables
+
 Create a `.env` file in the root directory and populate it with the following required variables:
 
 - `MONGO_URI`: Your MongoDB connection string.
@@ -71,27 +75,30 @@ Create a `.env` file in the root directory and populate it with the following re
 ## Usage
 
 ### Running the Application
+
 To start the application in different modes:
 
--   **Development mode (with watch)**:
-    ```bash
-    npm run start:dev
-    ```
--   **Production mode**:
-    ```bash
-    npm run start:prod
-    ```
--   **Debug mode**:
-    ```bash
-    npm run start:debug
-    ```
+- **Development mode (with watch)**:
+  ```bash
+  npm run start:dev
+  ```
+- **Production mode**:
+  ```bash
+  npm run start:prod
+  ```
+- **Debug mode**:
+  ```bash
+  npm run start:debug
+  ```
 
 ### Interacting with the API
+
 Once the server is running, you can interact with the API using a tool like Postman, Insomnia, or `curl`. Ensure you include the correct headers for authentication (Bearer Token for user authentication, `x-api-key` for service authentication).
 
 ## API Documentation
 
 ### Base URL
+
 `http://localhost:3000` (or your configured `PORT`)
 
 ### Authentication
@@ -99,21 +106,23 @@ Once the server is running, you can interact with the API using a tool like Post
 This API supports two main authentication strategies:
 
 1.  **JSON Web Token (JWT) for Users**:
-    -   Obtained after successful user login (`POST /auth/login` or Google OAuth).
-    -   Sent in the `Authorization` header as a Bearer token: `Authorization: Bearer <your_jwt_token>`
+    - Obtained after successful user login (`POST /auth/login` or Google OAuth).
+    - Sent in the `Authorization` header as a Bearer token: `Authorization: Bearer <your_jwt_token>`
 2.  **API Key for Services**:
-    -   Generated via the `/keys/create` endpoint.
-    -   Sent in the `x-api-key` header: `x-api-key: <your_service_api_key>`
-    -   API keys can have specific permissions (e.g., `read`, `deposit`, `transfer`). Endpoints requiring API keys will enforce these permissions.
+    - Generated via the `/keys/create` endpoint.
+    - Sent in the `x-api-key` header: `x-api-key: <your_service_api_key>`
+    - API keys can have specific permissions (e.g., `read`, `deposit`, `transfer`). Endpoints requiring API keys will enforce these permissions.
 
 ---
 
 ### Endpoints
 
 #### POST /auth/signup
+
 Registers a new user with email and password.
 
 **Request**:
+
 ```json
 {
   "email": "user@example.com",
@@ -122,6 +131,7 @@ Registers a new user with email and password.
 ```
 
 **Response**:
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1Ni...",
@@ -133,14 +143,17 @@ Registers a new user with email and password.
 ```
 
 **Errors**:
+
 - 409 Conflict: Email already in use.
 
 ---
 
 #### POST /auth/login
+
 Authenticates an existing user and returns a JWT.
 
 **Request**:
+
 ```json
 {
   "email": "user@example.com",
@@ -149,6 +162,7 @@ Authenticates an existing user and returns a JWT.
 ```
 
 **Response**:
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1Ni...",
@@ -160,11 +174,13 @@ Authenticates an existing user and returns a JWT.
 ```
 
 **Errors**:
+
 - 401 Unauthorized: Invalid credentials or account created via Google.
 
 ---
 
 #### GET /auth/google
+
 Initiates the Google OAuth login flow. Redirects to Google's authentication page.
 
 **Request**: (No direct request body or params, handled by browser redirect)
@@ -176,11 +192,13 @@ Initiates the Google OAuth login flow. Redirects to Google's authentication page
 ---
 
 #### GET /auth/google/callback
+
 Handles the redirect from Google OAuth after successful authentication.
 
 **Request**: (No direct request body, receives authorization code from Google)
 
 **Response**:
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1Ni...",
@@ -192,23 +210,28 @@ Handles the redirect from Google OAuth after successful authentication.
 ```
 
 **Errors**:
+
 - 401 Unauthorized: Failed Google authentication.
 
 ---
 
 #### POST /auth/logout
+
 Revokes the current JWT or deactivates the API key.
 
 **Request**: (Requires `Authorization: Bearer <token>` or `x-api-key: <key>`)
 (No request body)
 
 **Response**:
+
 ```json
 {
   "message": "User logged out — token revoked"
 }
 ```
+
 _or_
+
 ```json
 {
   "message": "API key with prefix sk_live_abcde successfully revoked"
@@ -216,11 +239,13 @@ _or_
 ```
 
 **Errors**:
+
 - 401 Unauthorized: Invalid or missing token/API key.
 
 ---
 
 #### GET /protected/hybrid
+
 Example protected route accessible by both authenticated users (JWT) and services (API Key).
 
 **Request**: (Requires `Authorization: Bearer <token>` or `x-api-key: <key>`)
@@ -228,26 +253,32 @@ Example protected route accessible by both authenticated users (JWT) and service
 
 **Response**:
 _If user authenticated:_
+
 ```json
 "Hello User: user@example.com"
 ```
+
 _If service authenticated:_
+
 ```json
 "Hello Service: My Awesome Service"
 ```
 
 **Errors**:
+
 - 401 Unauthorized: Invalid or missing token/API key.
 
 ---
 
 #### GET /protected/service-only
+
 Example protected route accessible only by services using an API Key.
 
 **Request**: (Requires `x-api-key: <key>`)
 (No request body)
 
 **Response**:
+
 ```json
 {
   "message": "Hello from My Awesome Service",
@@ -257,18 +288,21 @@ Example protected route accessible only by services using an API Key.
 ```
 
 **Errors**:
+
 - 401 Unauthorized: Invalid or missing API key.
 - 403 Forbidden: Attempted access with JWT.
 
 ---
 
 #### GET /protected/user-only
+
 Example protected route accessible only by authenticated users (JWT).
 
 **Request**: (Requires `Authorization: Bearer <token>`)
 (No request body)
 
 **Response**:
+
 ```json
 {
   "message": "Hello from user@example.com",
@@ -278,15 +312,18 @@ Example protected route accessible only by authenticated users (JWT).
 ```
 
 **Errors**:
+
 - 401 Unauthorized: Invalid or missing token.
 - 403 Forbidden: Attempted access with API Key.
 
 ---
 
 #### POST /keys/create
+
 Creates a new API key for the authenticated user.
 
 **Request**: (Requires `Authorization: Bearer <token>`)
+
 ```json
 {
   "name": "My New Service Key",
@@ -295,10 +332,12 @@ Creates a new API key for the authenticated user.
   "environment": "test"
 }
 ```
+
 _`expiry` can be `1H` (1 Hour), `1D` (1 Day), `1M` (1 Month), or `1Y` (1 Year)._
 _`environment` can be `live` or `test`. Defaults to `live`._
 
 **Response**:
+
 ```json
 {
   "message": "API key created successfully",
@@ -314,6 +353,7 @@ _`environment` can be `live` or `test`. Defaults to `live`._
 ```
 
 **Errors**:
+
 - 409 Conflict: Limit reached (max 5 active API keys per user) or service name already in use.
 - 400 BadRequest: Invalid expiry format.
 - 401 Unauthorized: Missing or invalid JWT.
@@ -321,22 +361,26 @@ _`environment` can be `live` or `test`. Defaults to `live`._
 ---
 
 #### POST /keys/rollover
+
 Generates a new API key based on an expired key, effectively replacing it.
 
 **Request**: (Requires `Authorization: Bearer <token>`)
+
 ```json
 {
   "expired_key_id": "65b7d9e2a1b3c4d5e6f7a8b9",
   "expiry": "1Y"
 }
 ```
+
 _`expiry` can be `1H`, `1D`, `1M`, or `1Y`._
 
 **Response**:
+
 ```json
 {
   "message": "Key rolled over successfully",
-  "api_key": "sk_live_newkeyabcdefghijklmnopqrstuvwxyz",
+  "api_key": "sk_live_newkeyp",
   "masked_key": "sk_live_...uvwxyz",
   "permissions": ["read", "deposit"],
   "environment": "live",
@@ -346,6 +390,7 @@ _`expiry` can be `1H`, `1D`, `1M`, or `1Y`._
 ```
 
 **Errors**:
+
 - 404 NotFound: Key not found or does not belong to the user.
 - 400 BadRequest: Key is not yet expired.
 - 409 Conflict: Limit reached for active API keys.
@@ -354,6 +399,7 @@ _`expiry` can be `1H`, `1D`, `1M`, or `1Y`._
 ---
 
 #### POST /keys/:keyPrefix/revoke
+
 Revokes an active API key, making it unusable.
 
 **Request**: (Requires `Authorization: Bearer <token>`)
@@ -361,6 +407,7 @@ _Path Parameter_: `keyPrefix` - The prefix of the API key to revoke (e.g., `sk_t
 (No request body)
 
 **Response**:
+
 ```json
 {
   "message": "API key with prefix sk_test_abcde successfully revoked"
@@ -368,17 +415,20 @@ _Path Parameter_: `keyPrefix` - The prefix of the API key to revoke (e.g., `sk_t
 ```
 
 **Errors**:
+
 - 401 Unauthorized: Missing or invalid JWT.
 
 ---
 
 #### GET /keys
+
 Retrieves all active API keys for the authenticated user (masked).
 
 **Request**: (Requires `Authorization: Bearer <token>`)
 (No request body)
 
 **Response**:
+
 ```json
 {
   "message": "1 API key(s) retrieved successfully",
@@ -397,7 +447,9 @@ Retrieves all active API keys for the authenticated user (masked).
   ]
 }
 ```
+
 _If no keys found:_
+
 ```json
 {
   "message": "No API keys found",
@@ -406,11 +458,13 @@ _If no keys found:_
 ```
 
 **Errors**:
+
 - 401 Unauthorized: Missing or invalid JWT.
 
 ---
 
 #### DELETE /keys/:keyPrefix
+
 Deletes an API key permanently.
 
 **Request**: (Requires `Authorization: Bearer <token>`)
@@ -418,12 +472,15 @@ _Path Parameter_: `keyPrefix` - The prefix of the API key to delete.
 (No request body)
 
 **Response**:
+
 ```json
 {
   "message": "API key with prefix sk_test_abcde successfully deleted"
 }
 ```
+
 _If key not found:_
+
 ```json
 {
   "message": "API key with prefix sk_test_abcde not found"
@@ -431,14 +488,17 @@ _If key not found:_
 ```
 
 **Errors**:
+
 - 401 Unauthorized: Missing or invalid JWT.
 
 ---
 
 #### POST /wallet/deposit
+
 Initiates a deposit transaction through Paystack. Requires `deposit` permission for API keys.
 
 **Request**: (Requires `Authorization: Bearer <token>` or `x-api-key: <key>` with `deposit` permission)
+
 ```json
 {
   "amount": 5000
@@ -446,6 +506,7 @@ Initiates a deposit transaction through Paystack. Requires `deposit` permission 
 ```
 
 **Response**:
+
 ```json
 {
   "authorization_url": "https://checkout.paystack.com/abcdefgh123",
@@ -455,6 +516,7 @@ Initiates a deposit transaction through Paystack. Requires `deposit` permission 
 ```
 
 **Errors**:
+
 - 400 BadRequest: Invalid amount (must be positive).
 - 401 Unauthorized: Invalid/missing token/API key.
 - 403 Forbidden: Insufficient API Key permissions (`deposit` required).
@@ -463,9 +525,11 @@ Initiates a deposit transaction through Paystack. Requires `deposit` permission 
 ---
 
 #### POST /wallet/paystack/webhook
+
 Endpoint for Paystack to send transaction success notifications.
 
 **Request**: (Sent by Paystack, `x-paystack-signature` header required)
+
 ```json
 {
   "event": "charge.success",
@@ -482,6 +546,7 @@ Endpoint for Paystack to send transaction success notifications.
 ```
 
 **Response**:
+
 ```json
 {
   "status": true
@@ -489,12 +554,14 @@ Endpoint for Paystack to send transaction success notifications.
 ```
 
 **Errors**:
+
 - 403 Forbidden: Invalid `x-paystack-signature`.
 - (Other errors might occur but are typically handled internally with logging as webhooks should always return 200/201 quickly).
 
 ---
 
 #### GET /wallet/deposit/:reference/status
+
 Checks the status of a specific deposit transaction.
 
 **Request**: (Requires `Authorization: Bearer <token>` or `x-api-key: <key>`)
@@ -502,26 +569,31 @@ _Path Parameter_: `reference` - The transaction reference from Paystack.
 (No request body)
 
 **Response**:
+
 ```json
 {
   "message": "Implement read-only logic here"
 }
 ```
+
 _Note: The current implementation provides a placeholder message. For full functionality, this endpoint would query the database for the transaction status._
 
 **Errors**:
+
 - 401 Unauthorized: Invalid/missing token/API key.
 - 403 Forbidden: Insufficient API Key permissions (if `read` or similar is added).
 
 ---
 
 #### GET /wallet/balance
+
 Retrieves the current balance of the authenticated user's wallet. Requires `read` permission for API keys.
 
 **Request**: (Requires `Authorization: Bearer <token>` or `x-api-key: <key>` with `read` permission)
 (No request body)
 
 **Response**:
+
 ```json
 {
   "balance": 12500
@@ -529,15 +601,18 @@ Retrieves the current balance of the authenticated user's wallet. Requires `read
 ```
 
 **Errors**:
+
 - 401 Unauthorized: Invalid/missing token/API key.
 - 403 Forbidden: Insufficient API Key permissions (`read` required).
 
 ---
 
 #### POST /wallet/transfer
+
 Transfers funds from the authenticated user's wallet to another internal wallet. Requires `transfer` permission for API keys.
 
 **Request**: (Requires `Authorization: Bearer <token>` or `x-api-key: <key>` with `transfer` permission)
+
 ```json
 {
   "wallet_number": "9876543210",
@@ -546,6 +621,7 @@ Transfers funds from the authenticated user's wallet to another internal wallet.
 ```
 
 **Response**:
+
 ```json
 {
   "status": "success",
@@ -554,6 +630,7 @@ Transfers funds from the authenticated user's wallet to another internal wallet.
 ```
 
 **Errors**:
+
 - 400 BadRequest: Amount must be positive or insufficient funds.
 - 404 NotFound: Recipient wallet not found.
 - 401 Unauthorized: Invalid/missing token/API key.
@@ -562,12 +639,14 @@ Transfers funds from the authenticated user's wallet to another internal wallet.
 ---
 
 #### GET /wallet/transactions
+
 Retrieves the transaction history for the authenticated user's wallet. Requires `read` permission for API keys.
 
 **Request**: (Requires `Authorization: Bearer <token>` or `x-api-key: <key>` with `read` permission)
 (No request body)
 
 **Response**:
+
 ```json
 [
   {
@@ -595,23 +674,28 @@ Retrieves the transaction history for the authenticated user's wallet. Requires 
 ```
 
 **Errors**:
+
 - 401 Unauthorized: Invalid/missing token/API key.
 - 403 Forbidden: Insufficient API Key permissions (`read` required).
 
 ---
 
 ## License
+
 This project is currently UNLICENSED. Please refer to the `package.json` for license details.
 
 ## Author
+
 **Abisoye Ogunmona**
 
 Connect with me:
--   LinkedIn: [Your_LinkedIn_Profile]
--   Twitter: [Your_Twitter_Handle]
--   Portfolio: [Your_Portfolio_Link]
+
+- LinkedIn: [Your_LinkedIn_Profile]
+- Twitter: [Your_Twitter_Handle]
+- Portfolio: [Your_Portfolio_Link]
 
 ## Badges
+
 [![NestJS](https://img.shields.io/badge/nestjs-%23E0234E.svg?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com)
 [![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)

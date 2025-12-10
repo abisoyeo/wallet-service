@@ -20,7 +20,7 @@ import { RolloverApiKeyDto } from 'src/api-key/dto/rollover-api-key.dto';
 import { ApiKeyService } from './keys.service';
 
 @ApiTags('keys')
-@ApiBearerAuth()
+@ApiBearerAuth('access-token')
 @Controller('keys')
 @UseGuards(AuthGuard('jwt'))
 export class ApiKeyController {

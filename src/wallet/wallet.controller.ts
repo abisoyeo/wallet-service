@@ -59,7 +59,7 @@ export class WalletController {
   @UseGuards(AuthGuard(['jwt', 'api-key']), PermissionsGuard)
   @SetMetadata('permissions', ['deposit'])
   @Post('deposit')
-  @ApiBearerAuth()
+  @ApiBearerAuth('access-token')
   @ApiSecurity('api-key')
   @ApiOperation({ summary: 'Initiate a deposit into the wallet' })
   @ApiResponse({ status: 201, description: 'Deposit initiated successfully' })
@@ -78,10 +78,10 @@ export class WalletController {
       }
       email = identity.email;
     } else if (identity.type === 'service') {
-      if (!identity.userId) {
+      if (!identity.ownerId) {
         throw new BadRequestException('Service owner ID is required');
       }
-      email = await this.getServiceOwnerEmail(identity.userId);
+      email = await this.getServiceOwnerEmail(identity.ownerId);
     } else {
       throw new BadRequestException('Invalid identity type');
     }
@@ -101,7 +101,7 @@ export class WalletController {
 
   @UseGuards(AuthGuard(['jwt', 'api-key']))
   @Get('deposit/:reference/status')
-  @ApiBearerAuth()
+  @ApiBearerAuth('access-token')
   @ApiSecurity('api-key')
   @ApiOperation({ summary: 'Check the status of a deposit' })
   @ApiResponse({ status: 200, description: 'Deposit status' })
@@ -112,11 +112,11 @@ export class WalletController {
 
   @UseGuards(AuthGuard(['jwt', 'api-key']), PermissionsGuard)
   @SetMetadata('permissions', ['read'])
-  @Get('balance')
-  @ApiBearerAuth()
+  @Get()
+  @ApiBearerAuth('access-token')
   @ApiSecurity('api-key')
-  @ApiOperation({ summary: 'Get the wallet balance' })
-  @ApiResponse({ status: 200, description: 'Wallet balance' })
+  @ApiOperation({ summary: 'Get the wallet details & balance' })
+  @ApiResponse({ status: 200, description: 'Wallet details' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getBalance(@CurrentIdentity() identity: Identity) {
     const userId = this.getWalletOwner(identity);
@@ -126,7 +126,7 @@ export class WalletController {
   @UseGuards(AuthGuard(['jwt', 'api-key']), PermissionsGuard)
   @SetMetadata('permissions', ['transfer'])
   @Post('transfer')
-  @ApiBearerAuth()
+  @ApiBearerAuth('access-token')
   @ApiSecurity('api-key')
   @ApiOperation({ summary: 'Transfer funds to another wallet' })
   @ApiResponse({ status: 201, description: 'Transfer successful' })
@@ -146,7 +146,7 @@ export class WalletController {
   @UseGuards(AuthGuard(['jwt', 'api-key']), PermissionsGuard)
   @SetMetadata('permissions', ['read'])
   @Get('transactions')
-  @ApiBearerAuth()
+  @ApiBearerAuth('access-token')
   @ApiSecurity('api-key')
   @ApiOperation({ summary: 'Get the transaction history' })
   @ApiResponse({ status: 200, description: 'Transaction history' })

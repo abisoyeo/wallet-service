@@ -9,4 +9,7 @@ export interface Identity {
   name?: string;
   ownerId?: string;
   permissions?: string[];
+  keyPrefix?: string;
+  isActive?: boolean;
+  expiresAt?: Date;
 }

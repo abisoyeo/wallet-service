@@ -61,7 +61,7 @@ export class AuthController {
   @UseGuards(AuthGuard(['jwt', 'api-key']))
   @HttpCode(HttpStatus.OK)
   @Post('logout')
-  @ApiBearerAuth()
+  @ApiBearerAuth('access-token')
   @ApiSecurity('api-key')
   @ApiOperation({ summary: 'User logout' })
   @ApiResponse({ status: 200, description: 'User logged out successfully' })

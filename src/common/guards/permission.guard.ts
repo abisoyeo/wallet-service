@@ -15,21 +15,36 @@ export class PermissionsGuard implements CanActivate {
       'permissions',
       context.getHandler(),
     );
-    if (!requiredPermissions) return true;
+
+    if (!requiredPermissions || requiredPermissions.length === 0) {
+      return true;
+    }
 
     const request = context.switchToHttp().getRequest();
-    const userOrService = request.user; // This comes from ApiKeyStrategy
+    const userOrService = request.user;
 
-    // If it's a user (JWT), they usually have full access, or you check their roles
-    if (userOrService.type === 'user') return true;
+    if (!userOrService) {
+      throw new ForbiddenException('Authentication required');
+    }
+
+    // If it's a user (JWT), they usually have full access
+    if (userOrService.type === 'user') {
+      return true;
+    }
 
     // If it's an API Key, check permissions array
     if (userOrService.type === 'service') {
+      const userPermissions = userOrService.permissions || [];
+
       const hasPermission = requiredPermissions.every((p) =>
-        userOrService.permissions.includes(p),
+        userPermissions.includes(p),
       );
-      if (!hasPermission)
-        throw new ForbiddenException('Insufficient API Key permissions');
+
+      if (!hasPermission) {
+        throw new ForbiddenException(
+          `Insufficient API Key permissions. Required: ${requiredPermissions.join(', ')}`,
+        );
+      }
       return true;
     }
 

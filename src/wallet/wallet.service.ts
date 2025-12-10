@@ -158,6 +158,10 @@ export class WalletService {
         throw new NotFoundException('Recipient wallet not found');
       }
 
+      if (senderWallet.walletNumber === recipientWallet.walletNumber) {
+        throw new BadRequestException('Cannot transfer to the same wallet');
+      }
+
       senderWallet.balance -= amount;
       await senderWallet.save({ session });
 
@@ -204,7 +208,7 @@ export class WalletService {
 
   async getBalance(userId: string) {
     const wallet = await this.ensureWallet(userId);
-    return { balance: wallet.balance };
+    return { walletNumber: wallet.walletNumber, balance: wallet.balance };
   }
 
   async getHistory(userId: string) {
