@@ -7,10 +7,10 @@ export class Wallet extends Document {
   userId: Types.ObjectId;
 
   @Prop({ required: true, unique: true })
-  walletNumber: string; // Unique ID for transfers
+  walletNumber: string;
 
   @Prop({ default: 0 })
-  balance: number; // Stored in minor units (kobo) to avoid float math issues is recommended, but using number for simplicity here.
+  balance: number;
 }
 
 export const WalletSchema = SchemaFactory.createForClass(Wallet);

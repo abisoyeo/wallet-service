@@ -14,6 +14,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiSecurity,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { CurrentIdentity } from 'src/common/decorators/current-identity.decorator';
@@ -61,6 +62,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('logout')
   @ApiBearerAuth()
+  @ApiSecurity('api-key')
   @ApiOperation({ summary: 'User logout' })
   @ApiResponse({ status: 200, description: 'User logged out successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })

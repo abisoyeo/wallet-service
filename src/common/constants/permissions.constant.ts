@@ -1,0 +1,1 @@
+export const ALLOWED_PERMISSIONS = ['deposit', 'transfer', 'read'] as const;

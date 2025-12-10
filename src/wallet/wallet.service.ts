@@ -6,7 +6,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { Connection, Model } from 'mongoose';
+import { ClientSession, Connection, Model } from 'mongoose';
 import * as crypto from 'crypto';
 import { Wallet } from './schemas/wallet.schema';
 import {
@@ -25,30 +25,37 @@ export class WalletService {
     private paystackService: PaystackService,
   ) {}
 
-  // --- HELPER: Get or Create Wallet ---
-  async ensureWallet(userId: string) {
-    let wallet = await this.walletModel.findOne({ userId });
+  async ensureWallet(userId: string, session?: ClientSession) {
+    let wallet = await this.walletModel
+      .findOne({ userId })
+      .session(session || null);
+
     if (!wallet) {
-      wallet = await this.walletModel.create({
-        userId,
-        walletNumber: crypto.randomInt(1000000000, 9999999999).toString(),
-        balance: 0,
-      });
+      const [createdWallet] = await this.walletModel.create(
+        [
+          {
+            userId,
+            walletNumber: crypto.randomInt(1000000000, 9999999999).toString(),
+            balance: 0,
+          },
+        ],
+        { session: session || undefined },
+      );
+
+      wallet = createdWallet;
     }
+
     return wallet;
   }
 
-  // --- 1. DEPOSIT INITIALIZATION ---
   async initiateDeposit(userId: string, email: string, amount: number) {
     if (amount <= 0) throw new BadRequestException('Invalid amount');
 
-    // 1. Call Paystack
     const paystackData = await this.paystackService.initializeTransaction(
       email,
       amount,
     );
 
-    // 2. Log "Pending" Transaction
     await this.txModel.create({
       userId,
       reference: paystackData.reference,
@@ -60,48 +67,44 @@ export class WalletService {
     return paystackData;
   }
 
-  // --- 2. WEBHOOK HANDLER (MANDATORY) ---
   async handleWebhook(signature: string, event: any) {
-    // A. Security Check
     if (!this.paystackService.verifySignature(signature, event)) {
       throw new ForbiddenException('Invalid signature');
     }
 
-    // We only care about success
     if (event.event !== 'charge.success') return { status: true };
 
     const { reference, amount } = event.data;
-    // Paystack sends amount in Kobo, convert back if your DB uses Naira
-    const realAmount = amount / 100;
+    const realAmount = amount;
 
-    // B. Idempotency & Atomicity
     const session = await this.connection.startSession();
     session.startTransaction();
 
     try {
-      // 1. Find the transaction
       const tx = await this.txModel.findOne({ reference }).session(session);
 
       if (!tx) {
-        // Log "orphan" transaction if needed, or ignore
         await session.abortTransaction();
         return { status: true };
       }
 
-      // 2. IDEMPOTENCY CHECK: If already success, stop.
+      await this.ensureWallet(tx.userId.toString(), session);
+
       if (tx.status === TransactionStatus.SUCCESS) {
         await session.abortTransaction();
         return { status: true };
       }
 
-      // 3. Update Transaction Status
       tx.status = TransactionStatus.SUCCESS;
       await tx.save({ session });
 
-      // 4. Credit Wallet
-      await this.walletModel
+      const updateResult = await this.walletModel
         .updateOne({ userId: tx.userId }, { $inc: { balance: realAmount } })
         .session(session);
+
+      if (updateResult.modifiedCount === 0) {
+        throw new Error('Wallet update failed despite ensureWallet');
+      }
 
       await session.commitTransaction();
       return { status: true };
@@ -113,7 +116,23 @@ export class WalletService {
     }
   }
 
-  // --- 3. TRANSFER (Atomic) ---
+  async getDepositStatus(reference: string) {
+    const localTx = await this.txModel.findOne({ reference });
+
+    const paystackResponse =
+      await this.paystackService.verifyTransaction(reference);
+    const data = paystackResponse.data;
+
+    return {
+      reference: data.reference,
+      status: data.status,
+      amount: data.amount,
+      paid_at: data.paid_at,
+      channel: data.channel,
+      local_status: localTx ? localTx.status : 'not_found_locally',
+    };
+  }
+
   async transferFunds(
     senderId: string,
     recipientWalletNum: string,
@@ -125,7 +144,6 @@ export class WalletService {
     session.startTransaction();
 
     try {
-      // 1. Get Sender Wallet
       const senderWallet = await this.walletModel
         .findOne({ userId: senderId })
         .session(session);
@@ -133,7 +151,6 @@ export class WalletService {
         throw new BadRequestException('Insufficient funds');
       }
 
-      // 2. Get Recipient Wallet
       const recipientWallet = await this.walletModel
         .findOne({ walletNumber: recipientWalletNum })
         .session(session);
@@ -141,22 +158,19 @@ export class WalletService {
         throw new NotFoundException('Recipient wallet not found');
       }
 
-      // 3. Deduct Sender
       senderWallet.balance -= amount;
       await senderWallet.save({ session });
 
-      // 4. Credit Recipient
       recipientWallet.balance += amount;
       await recipientWallet.save({ session });
 
-      // 5. Log Transaction (Sender View)
       await this.txModel.create(
         [
           {
             userId: senderId,
             reference: crypto.randomUUID(),
             type: TransactionType.TRANSFER,
-            amount: -amount, // Negative for sender
+            amount: -amount,
             status: TransactionStatus.SUCCESS,
             recipientWalletNumber: recipientWalletNum,
           },
@@ -164,14 +178,13 @@ export class WalletService {
         { session },
       );
 
-      // 6. Log Transaction (Recipient View - Optional but good for history)
       await this.txModel.create(
         [
           {
             userId: recipientWallet.userId,
             reference: crypto.randomUUID(),
             type: TransactionType.TRANSFER,
-            amount: amount, // Positive for recipient
+            amount: amount,
             status: TransactionStatus.SUCCESS,
             senderWalletNumber: senderWallet.walletNumber,
           },
@@ -189,7 +202,6 @@ export class WalletService {
     }
   }
 
-  // --- READ METHODS ---
   async getBalance(userId: string) {
     const wallet = await this.ensureWallet(userId);
     return { balance: wallet.balance };

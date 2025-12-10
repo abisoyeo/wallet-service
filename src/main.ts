@@ -9,7 +9,23 @@ async function bootstrap() {
     .setTitle('Paystack Wallet API')
     .setDescription('API documentation for the Paystack Wallet')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+      'access-token',
+    )
+    .addApiKey(
+      {
+        type: 'apiKey',
+        name: 'x-api-key',
+        in: 'header',
+        description: 'API Key for Service-to-Service communication',
+      },
+      'api-key',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);

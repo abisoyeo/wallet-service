@@ -18,7 +18,7 @@ export class Transaction extends Document {
   userId: Types.ObjectId;
 
   @Prop({ required: true, unique: true })
-  reference: string; // Paystack ref or internal UUID
+  reference: string;
 
   @Prop({ required: true, enum: TransactionType })
   type: string;
@@ -33,7 +33,6 @@ export class Transaction extends Document {
   })
   status: string;
 
-  // Optional: For transfers
   @Prop()
   recipientWalletNumber?: string;
 

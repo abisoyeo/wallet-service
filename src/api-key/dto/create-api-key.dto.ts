@@ -4,9 +4,11 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsIn,
 } from 'class-validator';
 import { KeyEnvironment } from '../utils/key-prefix.helper';
 import { ApiProperty } from '@nestjs/swagger';
+import { ALLOWED_PERMISSIONS } from '../../common/constants/permissions.constant';
 
 export class CreateApiKeyDto {
   @ApiProperty({
@@ -23,6 +25,12 @@ export class CreateApiKeyDto {
   })
   @IsArray()
   @IsString({ each: true })
+  @IsIn(ALLOWED_PERMISSIONS, {
+    each: true,
+    message: `Each permission must be one of the following: ${ALLOWED_PERMISSIONS.join(
+      ', ',
+    )}`,
+  })
   permissions: string[];
 
   @ApiProperty({

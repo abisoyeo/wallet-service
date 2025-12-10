@@ -6,12 +6,14 @@ import { PaystackService } from './paystack.service';
 import { Wallet, WalletSchema } from './schemas/wallet.schema';
 import { Transaction, TransactionSchema } from './schemas/transaction.schema';
 import { AuthModule } from '../auth/auth.module';
+import { User, UserSchema } from 'src/users/user.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Wallet.name, schema: WalletSchema },
       { name: Transaction.name, schema: TransactionSchema },
+      { name: User.name, schema: UserSchema },
     ]),
     AuthModule,
   ],

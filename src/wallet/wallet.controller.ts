@@ -8,6 +8,7 @@ import {
   UseGuards,
   SetMetadata,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
@@ -15,6 +16,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
+  ApiSecurity,
 } from '@nestjs/swagger';
 import { WalletService } from './wallet.service';
 import { PermissionsGuard } from 'src/common/guards/permission.guard';
@@ -22,13 +24,18 @@ import { CurrentIdentity } from 'src/common/decorators/current-identity.decorato
 import type { Identity } from 'src/common/interfaces/identity.interface';
 import { DepositDto } from './dto/deposit.dto';
 import { TransferDto } from './dto/transfer.dto';
+import { User } from 'src/users/user.schema';
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 
 @ApiTags('wallet')
 @Controller('wallet')
 export class WalletController {
-  constructor(private walletService: WalletService) {}
+  constructor(
+    private walletService: WalletService,
+    @InjectModel(User.name) private userModel: Model<User>,
+  ) {}
 
-  // --- Helper to get the Target User ID (Wallet Owner) ---
   private getWalletOwner(identity: Identity): string {
     if (identity.type === 'user') {
       return identity.userId!;
@@ -39,10 +46,21 @@ export class WalletController {
     throw new BadRequestException('Cannot determine wallet owner');
   }
 
+  private async getServiceOwnerEmail(ownerId: string): Promise<string> {
+    const user = await this.userModel.findById(ownerId).select('email');
+
+    if (!user || !user.email) {
+      throw new NotFoundException('Service owner not found or has no email');
+    }
+
+    return user.email;
+  }
+
   @UseGuards(AuthGuard(['jwt', 'api-key']), PermissionsGuard)
   @SetMetadata('permissions', ['deposit'])
   @Post('deposit')
   @ApiBearerAuth()
+  @ApiSecurity('api-key')
   @ApiOperation({ summary: 'Initiate a deposit into the wallet' })
   @ApiResponse({ status: 201, description: 'Deposit initiated successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -52,9 +70,21 @@ export class WalletController {
   ) {
     const userId = this.getWalletOwner(identity);
 
-    // Fallback email logic: Users have emails, Services might need the Owner's email
-    // You might want to fetch the user from DB here if email is strictly required for Paystack
-    const email = identity.email || 'service-integration@example.com';
+    let email: string;
+
+    if (identity.type === 'user') {
+      if (!identity.email) {
+        throw new BadRequestException('User email is required');
+      }
+      email = identity.email;
+    } else if (identity.type === 'service') {
+      if (!identity.userId) {
+        throw new BadRequestException('Service owner ID is required');
+      }
+      email = await this.getServiceOwnerEmail(identity.userId);
+    } else {
+      throw new BadRequestException('Invalid identity type');
+    }
 
     return this.walletService.initiateDeposit(userId, email, body.amount);
   }
@@ -72,20 +102,19 @@ export class WalletController {
   @UseGuards(AuthGuard(['jwt', 'api-key']))
   @Get('deposit/:reference/status')
   @ApiBearerAuth()
+  @ApiSecurity('api-key')
   @ApiOperation({ summary: 'Check the status of a deposit' })
   @ApiResponse({ status: 200, description: 'Deposit status' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async checkStatus(@Param('reference') ref: string) {
-    // Just find the transaction
-    // Implementation left brief:
-    // return this.txModel.findOne({ reference: ref });
-    return { message: 'Implement read-only logic here' };
+    return this.walletService.getDepositStatus(ref);
   }
 
   @UseGuards(AuthGuard(['jwt', 'api-key']), PermissionsGuard)
   @SetMetadata('permissions', ['read'])
   @Get('balance')
   @ApiBearerAuth()
+  @ApiSecurity('api-key')
   @ApiOperation({ summary: 'Get the wallet balance' })
   @ApiResponse({ status: 200, description: 'Wallet balance' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -98,6 +127,7 @@ export class WalletController {
   @SetMetadata('permissions', ['transfer'])
   @Post('transfer')
   @ApiBearerAuth()
+  @ApiSecurity('api-key')
   @ApiOperation({ summary: 'Transfer funds to another wallet' })
   @ApiResponse({ status: 201, description: 'Transfer successful' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -117,6 +147,7 @@ export class WalletController {
   @SetMetadata('permissions', ['read'])
   @Get('transactions')
   @ApiBearerAuth()
+  @ApiSecurity('api-key')
   @ApiOperation({ summary: 'Get the transaction history' })
   @ApiResponse({ status: 200, description: 'Transaction history' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
